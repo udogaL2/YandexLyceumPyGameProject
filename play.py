@@ -32,6 +32,11 @@ def load_image(name):
     return image
 
 
+BRICK_COLORS = [load_image('плитка 1.png'), load_image('плитка 3.png')]
+SYSTEM_BRICK_COLOR = [load_image('блок.png'), load_image('актив.png')]
+all_sprites = pygame.sprite.Group()
+
+
 def generate_key():
     # генерация ключа
     key = ''
@@ -79,7 +84,6 @@ def load_preservation(key):
     fullname = os.path.join('data\saves', player_key + '.txt')
     with open(fullname, 'r') as players_progress:
         levels_completed = [line.split() for line in players_progress][0]
-        print(levels_completed)
     players_progress.close()
 
 
@@ -131,10 +135,6 @@ def load_level(name):
     return level_map
 
 
-colors = [load_image('плитка 1.png'), load_image('плитка 3.png')]
-all_sprites = pygame.sprite.Group()
-
-
 class InputBox:
     def __init__(self, x, y, w, h, text=''):
         self.rect = pygame.Rect(x, y, w, h)
@@ -180,7 +180,7 @@ class Brick(pygame.sprite.Sprite):
         self.color = int(color)
         self.x = x
         self.y = y
-        self.image = colors[self.color]
+        self.image = BRICK_COLORS[self.color]
         self.rect = self.image.get_rect().move(100 * self.x + 250, 100 * self.y + 50)
 
     def is_color(self, color):
@@ -191,7 +191,20 @@ class Brick(pygame.sprite.Sprite):
 
     def switch_color(self):
         self.color = (self.color + 1) % 2
-        self.image = colors[self.color]
+        self.image = BRICK_COLORS[self.color]
+
+
+class SystemBricks(pygame.sprite.Sprite):
+    def __init__(self, tile_type, pos_x, pos_y):
+        super().__init__(all_sprites)
+        self.setup(tile_type, pos_x, pos_y)
+
+    def setup(self, color, x, y):
+        self.color = int(color)
+        self.x = x
+        self.y = y
+        self.image = SYSTEM_BRICK_COLOR[self.color]
+        self.rect = self.image.get_rect().move(100 * self.x + 200, 100 * self.y + 100)
 
 
 class Board:
@@ -308,6 +321,12 @@ def choose_screen():
     buttons = Buttons(4, 4)
     buttons.set_view(200, 100, 100)
 
+    for y in range(4):
+        for x in range(4):
+            screen.blit(SYSTEM_BRICK_COLOR[int(levels_completed[y * 4 + x])], (100 * x + 200, 100 * y + 100))
+
+    pygame.display.flip()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -353,9 +372,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     num_lvl = str(choose_screen())
-    level_window(num_lvl)
+    if num_lvl == '1' or levels_completed[int(num_lvl) - 2] == '1':
+        level_window(num_lvl)
+        levels_completed[int(num_lvl) - 1] = '1'
+    else:
+        pass
+        # ошибка
     clock.tick(FPS)
-    levels_completed[int(num_lvl) - 1] = '1'
     save_game()
 
 pygame.quit()
