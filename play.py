@@ -5,6 +5,7 @@ import random
 
 # ________________________________________
 pygame.init()
+pygame.display.set_caption('')
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 # ________________________________________
@@ -34,6 +35,7 @@ def load_image(name):
 
 BRICK_COLORS = [load_image('плитка 1.png'), load_image('плитка 3.png')]
 SYSTEM_BRICK_COLOR = [load_image('блок.png'), load_image('актив.png')]
+TUTORIAL_BG = [load_image('вывод ключа.jpg'), load_image('правила.jpg')]
 all_sprites = pygame.sprite.Group()
 
 
@@ -168,6 +170,7 @@ class InputBox:
 
     def render(self, screen):
         screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
@@ -289,6 +292,27 @@ class Buttons:
             return cell
 
 
+def tutorial():
+    screen.blit(TUTORIAL_BG[0], (0, 0))
+    font = pygame.font.Font(None, 60)
+    key = font.render(player_key, True, pygame.Color("white"))
+    screen.blit(key, (310, 130))
+    num_of_click = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                num_of_click += 1
+                if num_of_click == 1:
+                    screen.blit(TUTORIAL_BG[1], (0, 0))
+                elif num_of_click == 2:
+                    return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def start_screen():
     fon = load_image('главное меню.jpg')
     screen.blit(fon, (0, 0))
@@ -304,6 +328,7 @@ def start_screen():
                 if tag is not None:
                     if tag[1] == 0:
                         new_game()
+                        tutorial()
                         return
                     elif tag[1] == 1:
                         load_game()
@@ -321,6 +346,9 @@ def choose_screen():
     buttons = Buttons(4, 4)
     buttons.set_view(200, 100, 100)
 
+    quit_button = Buttons(1, 2)
+    quit_button.set_view(20, 20, 80)
+
     for y in range(4):
         for x in range(4):
             screen.blit(SYSTEM_BRICK_COLOR[int(levels_completed[y * 4 + x])], (100 * x + 200, 100 * y + 100))
@@ -333,6 +361,9 @@ def choose_screen():
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 tag = buttons.get_click(event.pos)
+                quit_tag = quit_button.get_click(event.pos)
+                if quit_tag is not None:
+                    terminate()
                 if tag is not None:
                     lvl = tag[0] + 1 + tag[1] * 4
                     return lvl
