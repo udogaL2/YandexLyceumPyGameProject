@@ -10,6 +10,16 @@ size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 # ________________________________________
 
+pygame.mixer.music.load(os.path.join('data\music', '001_Synthwave_4k.mp3'))
+pygame.mixer.music.set_volume(0.4)
+pygame.mixer.music.play(-1)
+
+click_sound = pygame.mixer.Sound(os.path.join('data\music', 'click.ogg'))
+click_sound.set_volume(0.4)
+
+win_sound = pygame.mixer.Sound(os.path.join('data\music', 'lvlup.ogg'))
+win_sound.set_volume(0.4)
+
 # ________________________________________
 # Настройка
 clock = pygame.time.Clock()
@@ -33,6 +43,7 @@ def load_image(name):
     return image
 
 
+pygame.display.set_icon(load_image('плитка 1.png'))
 BRICK_COLORS = [load_image('плитка 1.png'), load_image('плитка 3.png')]
 SYSTEM_BRICK_COLOR = [load_image('блок.png'), load_image('актив.png')]
 TUTORIAL_BG = [load_image('вывод ключа.jpg'), load_image('правила.jpg')]
@@ -147,6 +158,7 @@ class InputBox:
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
+            click_sound.play()
             if self.rect.collidepoint(event.pos):
                 self.active = not self.active
             else:
@@ -304,6 +316,7 @@ def tutorial():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                click_sound.play()
                 num_of_click += 1
                 if num_of_click == 1:
                     screen.blit(TUTORIAL_BG[1], (0, 0))
@@ -324,16 +337,20 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                click_sound.play()
                 tag = buttons.get_click(event.pos)
                 if tag is not None:
                     if tag[1] == 0:
+                        click_sound.play()
                         new_game()
                         tutorial()
                         return
                     elif tag[1] == 1:
+                        click_sound.play()
                         load_game()
                         return
                     elif tag[1] == 2:
+                        click_sound.play()
                         terminate()
         pygame.display.flip()
         clock.tick(FPS)
@@ -346,7 +363,7 @@ def choose_screen():
     buttons = Buttons(4, 4)
     buttons.set_view(200, 100, 100)
 
-    quit_button = Buttons(1, 2)
+    quit_button = Buttons(2, 1)
     quit_button.set_view(20, 20, 80)
 
     for y in range(4):
@@ -360,8 +377,10 @@ def choose_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                tag = buttons.get_click(event.pos)
-                quit_tag = quit_button.get_click(event.pos)
+                click_sound.play()
+                click = event.pos
+                tag = buttons.get_click(click)
+                quit_tag = quit_button.get_click(click)
                 if quit_tag is not None:
                     terminate()
                 if tag is not None:
@@ -369,6 +388,17 @@ def choose_screen():
                     return lvl
         pygame.display.flip()
         clock.tick(FPS)
+
+
+def level_completed_animation():
+    tablet = load_image('уровень пройден.png')
+    rect = pygame.Rect(0, 0, tablet.get_width() // 5, tablet.get_height())
+    for i in range(5):
+        frame_location = (rect.w * i, 0)
+        screen.blit(tablet.subsurface(pygame.Rect(frame_location, rect.size)), (200, 200))
+        pygame.display.flip()
+        clock.tick(FPS)
+    pygame.time.wait(2000)
 
 
 def level_window(lvl):
@@ -384,8 +414,11 @@ def level_window(lvl):
             if event.type == pygame.QUIT:
                 terminate()
             if board.is_win():
+                win_sound.play()
+                level_completed_animation()
                 return
             if event.type == pygame.MOUSEBUTTONDOWN:
+                click_sound.play()
                 board.get_click(event.pos)
         all_sprites.draw(screen)
         pygame.display.flip()
