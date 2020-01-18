@@ -5,7 +5,7 @@ import random
 
 # ________________________________________
 pygame.init()
-pygame.display.set_caption('')
+pygame.display.set_caption('Line-go')
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 # ________________________________________
@@ -186,6 +186,41 @@ class InputBox:
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows):
+        super().__init__()
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self, x, y):
+        fon = load_image('природная тема.png')
+        for i in range(10):
+            self.image = self.frames[i]
+            pygame.display.flip()
+            screen.blit(fon, (0, 0))
+            all_sprites.draw(screen)
+            screen.blit(self.image, (x, y))
+            pygame.display.flip()
+            clock.tick(50)
+        screen.blit(fon, (0, 0))
+        all_sprites.draw(screen)
+        pygame.display.flip()
+
+
+Animate_sprites = [AnimatedSprite(load_image('анимация1.png'), 5, 2), AnimatedSprite(load_image('анимация2.png'), 5, 2)]
+
+
 class Brick(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(all_sprites)
@@ -204,9 +239,16 @@ class Brick(pygame.sprite.Sprite):
     def get_color(self):
         return self.color
 
+    def animation(self):
+        if self.color == 1:
+            Animate_sprites[0].update(100 * self.x + 240, 100 * self.y + 40)
+        else:
+            Animate_sprites[1].update(100 * self.x + 240, 100 * self.y + 40)
+
     def switch_color(self):
         self.color = (self.color + 1) % 2
         self.image = BRICK_COLORS[self.color]
+        self.animation()
 
 
 class SystemBricks(pygame.sprite.Sprite):
@@ -241,11 +283,7 @@ class Board:
                 self.board[y][x] = Brick(setup[y][x], x, y)
 
     def on_click(self, cell):
-        for i in range(5):
-            self.board[i][cell[0]].switch_color()
-            self.board[cell[1]][i].switch_color()
-            self.board_cells[i][cell[0]] = self.board[i][cell[0]].get_color()
-            self.board_cells[cell[1]][i] = self.board[cell[1]][i].get_color()
+
         self.board[cell[1]][cell[0]].switch_color()
         self.board_cells[cell[1]][cell[0]] = self.board[cell[1]][cell[0]].get_color()
 
@@ -404,7 +442,7 @@ def level_completed_animation():
 def level_window(lvl):
     level_setup = load_level('lvl' + lvl + '.txt')  # загрузка уровня из файла
 
-    fon = load_image('природная тема.jpg')
+    fon = load_image('природная тема.png')
     screen.blit(fon, (0, 0))
 
     board = Board(5, 5, level_setup)
@@ -414,7 +452,11 @@ def level_window(lvl):
             if event.type == pygame.QUIT:
                 terminate()
             if board.is_win():
+                all_sprites.draw(screen)
+                pygame.display.flip()
+                clock.tick(FPS)
                 win_sound.play()
+                pygame.time.wait(100)
                 level_completed_animation()
                 return
             if event.type == pygame.MOUSEBUTTONDOWN:
