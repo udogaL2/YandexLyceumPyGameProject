@@ -43,7 +43,7 @@ def load_image(name):
     return image
 
 
-pygame.display.set_icon(load_image('плитка 1.png'))
+pygame.display.set_icon(load_image('иконка.png'))
 BRICK_COLORS = [load_image('плитка 1.png'), load_image('плитка 3.png')]
 SYSTEM_BRICK_COLOR = [load_image('блок.png'), load_image('актив.png')]
 TUTORIAL_BG = [load_image('вывод ключа.jpg'), load_image('правила.jpg')]
@@ -86,10 +86,12 @@ def new_game():
 
 
 def check_file(key):
+    # проверка на существование файла
     return os.path.isfile(os.path.join('data\saves', key + '.txt'))
 
 
 def load_preservation(key):
+    # загрузка прогресса из файла
     global player_key, levels_completed
 
     player_key = key
@@ -101,6 +103,7 @@ def load_preservation(key):
 
 
 def load_game():
+    # форма для ввода ключа
     bg = load_image('загрузка уровня.jpg')
     screen.blit(bg, (0, 0))
     input_box = InputBox(300, 220, 100, 36)
@@ -113,8 +116,9 @@ def load_game():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            text = input_box.handle_event(event)
+            text = input_box.handle_event(event)  # возвращает текст или ничего
             if text is not None:
+                # проверка на существование файла
                 if check_file(text):
                     ok_msg1 = FONT.render("Данный ключ найден!", True, pygame.Color("white"))
                     ok_msg2 = FONT.render("Идет загрузка...", True, pygame.Color("white"))
@@ -141,6 +145,7 @@ def load_game():
 
 
 def load_level(name):
+    # загрузка уровня
     fullname = os.path.join('data\levels', name)
     with open(fullname, 'r') as mapFile:
         level_map = [list(map(int, line.split())) for line in mapFile]
@@ -149,6 +154,7 @@ def load_level(name):
 
 
 class InputBox:
+    # окно ввода
     def __init__(self, x, y, w, h, text=''):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = COLOR_INACTIVE
@@ -157,6 +163,7 @@ class InputBox:
         self.active = False
 
     def handle_event(self, event):
+        # если нажать мышью, то окно становится активным
         if event.type == pygame.MOUSEBUTTONDOWN:
             click_sound.play()
             if self.rect.collidepoint(event.pos):
@@ -164,23 +171,29 @@ class InputBox:
             else:
                 self.active = False
             self.color = COLOR_ACTIVE if self.active else COLOR_INACTIVE
+        # обработка нажатия на клавиатуру
         if event.type == pygame.KEYDOWN:
             if self.active:
+                # если нажат энтер, то возвращает текст
                 if event.key == pygame.K_RETURN:
                     copy = self.text
                     self.text = ''
                     return copy
+                # если нажат backspace, то стирает последний символ
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
+                # иначе добавляет введенный символ
                 else:
                     self.text += event.unicode
                 self.txt_surface = FONT.render(self.text, True, self.color)
 
     def update(self):
+        # обновление размеров, если длинна символов больше чем окно ввода
         width = max(200, self.txt_surface.get_width() + 10)
         self.rect.w = width
 
     def render(self, screen):
+        # рендер окна ввода
         screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
 
         pygame.draw.rect(screen, self.color, self.rect, 2)
@@ -212,7 +225,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
             all_sprites.draw(screen)
             screen.blit(self.image, (x, y))
             pygame.display.flip()
-            clock.tick(50)
+            clock.tick(FPS)
         screen.blit(fon, (0, 0))
         all_sprites.draw(screen)
         pygame.display.flip()
@@ -252,6 +265,7 @@ class Brick(pygame.sprite.Sprite):
 
 
 class SystemBricks(pygame.sprite.Sprite):
+    # блок для отображения пройденных уровней
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(all_sprites)
         self.setup(tile_type, pos_x, pos_y)
@@ -278,12 +292,18 @@ class Board:
         self.cell_size = 100
 
     def render(self, setup):
+        # первый рендер и создание спрайтов
         for y in range(self.height):
             for x in range(self.width):
                 self.board[y][x] = Brick(setup[y][x], x, y)
 
     def on_click(self, cell):
-
+        # изменение цветов у спрайтов
+        for i in range(5):
+            self.board[i][cell[0]].switch_color()
+            self.board[cell[1]][i].switch_color()
+            self.board_cells[i][cell[0]] = self.board[i][cell[0]].get_color()
+            self.board_cells[cell[1]][i] = self.board[cell[1]][i].get_color()
         self.board[cell[1]][cell[0]].switch_color()
         self.board_cells[cell[1]][cell[0]] = self.board[cell[1]][cell[0]].get_color()
 
@@ -300,6 +320,7 @@ class Board:
             self.on_click(cell)
 
     def is_win(self):
+        # проверка на прохождение уровня
         return self.board_cells == WIN_STRIKE
 
 
@@ -340,6 +361,17 @@ class Buttons:
         cell = self.get_cell(mouse_pos)
         if cell:
             return cell
+
+
+def error_msg():
+    tablet = load_image('уровень заблокирован.png')
+    rect = pygame.Rect(0, 0, tablet.get_width() // 5, tablet.get_height())
+    for i in range(5):
+        frame_location = (rect.w * i, 0)
+        screen.blit(tablet.subsurface(pygame.Rect(frame_location, rect.size)), (200, 200))
+        pygame.display.flip()
+        clock.tick(FPS)
+    pygame.time.wait(2000)
 
 
 def tutorial():
@@ -442,8 +474,7 @@ def level_completed_animation():
 def level_window(lvl):
     level_setup = load_level('lvl' + lvl + '.txt')  # загрузка уровня из файла
 
-    fon = load_image('природная тема.png')
-    screen.blit(fon, (0, 0))
+    UploadBG('природная тема.png')
 
     board = Board(5, 5, level_setup)
 
@@ -467,9 +498,7 @@ def level_window(lvl):
         clock.tick(FPS)
 
 
-# ________________________________________________________
 start_screen()
-# ________________________________________________________
 
 running = True
 
@@ -482,8 +511,7 @@ while running:
         level_window(num_lvl)
         levels_completed[int(num_lvl) - 1] = '1'
     else:
-        pass
-        # ошибка
+        error_msg()
     clock.tick(FPS)
     save_game()
 
